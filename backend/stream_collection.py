@@ -5,9 +5,13 @@ keys provided in the .env file.
 
 Run settings.py before using this script.
 
+@Author: Sebastian Duque Mesa
+
 """
 
-from tweepy import OAuthHandler, Stream, StreamListener
+from tweepy import OAuthHandler, Stream, API
+
+from listener import Listener
 
 import yaml
 import time, os, sys
@@ -31,42 +35,22 @@ ACCESS_TOKEN_SECRET = api_keys["ACCESS_TOKEN_SECRET"]
 # Search filter rule set to geo baunding box
 MEDELLIN_BBOX = [-75.8032106603,5.9566942289,-75.2758668684,6.4913941464]
 
-class Listener(StreamListener):
-    """ 
-    A listener that handles tweets received from the stream.
-    """
-    def __init__(self):
-        self.reconnection_attemps = 0
-        self.collected_tweets = 0
-
-    def on_data(self, data):
-
-        self.reconnection_attemps = 0       # restart reconnection attemps counter when there is incoming data
-        self.collected_tweets += 1
-
-        tweet = json.loads(data)
-        print(self.collected_tweets,'\t',tweet['created_at'], end='\r')
-
-        return True
-
-    def on_error(self, status):
-        if status == 420:
-            self.reconnection_attemps += 1
-            sys.stdout.write('Error 420: Enhance Your Calm, the app has been rate limited\n')
-            time.sleep(60*self.reconnection_attemps)
-            return True
-        else:
-            sys.stdout.write('Error {}\n'.format(status))
-            return False
-
 if __name__ == '__main__':
-
-    # Instantiate the listener object
-    listener = Listener()
 
     # Authentication
     auth = OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
     auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+
+    # Instantiate twitter API with auth info
+    api = API(auth, 
+        # retry 3 times with 5 seconds delay when getting these error codes
+        # For more details see 
+        # https://dev.twitter.com/docs/error-codes-responses  
+        retry_count=3,retry_delay=5,retry_errors=set([401, 404, 500, 503]), 
+        # monitor remaining calls and block until replenished  
+        wait_on_rate_limit=True,
+        wait_on_rate_limit_notify=True 
+    )
 
     # create a engine to the database
     engine = create_engine("sqlite:///tweets.sqlite")
@@ -75,6 +59,8 @@ if __name__ == '__main__':
         # create a new database
         create_database(engine.url)
 
+    # Instantiate the listener object
+    listener = Listener(api)
 
     sys.stdout.write('Starting stream...\n')
     stream = Stream(auth, listener)
