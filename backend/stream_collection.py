@@ -13,6 +13,8 @@ from tweepy import OAuthHandler, Stream, API
 
 from listener import Listener
 
+from urllib3.exceptions import ProtocolError
+
 import yaml
 import time, os, sys
 from pathlib import Path
@@ -63,5 +65,16 @@ if __name__ == '__main__':
     listener = Listener(api)
 
     sys.stdout.write('Starting stream...\n')
+
+    # Instantiate the Stream object
     stream = Stream(auth, listener)
-    stream.filter(locations = MEDELLIN_BBOX)
+
+    # begin the stream
+    while True:
+        # maintian connection unless interrupted
+        try:
+            stream.filter(locations = MEDELLIN_BBOX)
+        # reconnect automantically if error arise
+        # due to unstable network connection
+        except(ProtocolError, AttributeError):
+            continue

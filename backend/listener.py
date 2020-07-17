@@ -29,14 +29,29 @@ class Listener(StreamListener):
 
     def on_status(self, status):
         """Called when a new status arrives
-        Recieves a Status object. Tweet data is in Status._json
+        Recieves a Status object. 
+        Tweet data is in Status._json which is already a dict.
+
         """
 
         self.reconnection_attemps = 0       # restart reconnection attemps counter when there is incoming data
         self.collected_tweets += 1
 
-        tweet = json.loads(status._json)
-        print(self.collected_tweets,'\t',tweet['created_at'],'\t',tweet['text'])
+        tweet = status._json
+
+        # Find and keep the longest tweet text
+        tweet_text_list = [tweet['text']]
+
+        if 'extended_tweet' in tweet:
+            tweet_text_list.append(tweet['extended_tweet']['full_text'])
+        if 'retweeted_status' in tweet and 'extended_tweet' in tweet['retweeted_status']:
+            tweet_text_list.append(tweet['retweeted_status']['extended_tweet']['full_text'])
+        if 'quoted_status' in tweet and 'extended_tweet' in tweet['quoted_status']:
+            tweet_text_list.append(tweet['quoted_status']['extended_tweet']['full_text'])
+
+        tweet_text = max(tweet_text_list, key=len)
+
+        print(tweet_text)
 
         return True
 
