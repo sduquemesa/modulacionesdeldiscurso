@@ -12,6 +12,7 @@ import time
 import sys
 import pandas as pd
 from sqlalchemy import create_engine
+from utils import parse_tweet
 
 class Listener(StreamListener):
     """ 
@@ -39,19 +40,7 @@ class Listener(StreamListener):
 
         tweet = status._json
 
-        # Find and keep the longest tweet text
-        tweet_text_list = [tweet['text']]
-
-        if 'extended_tweet' in tweet:
-            tweet_text_list.append(tweet['extended_tweet']['full_text'])
-        if 'retweeted_status' in tweet and 'extended_tweet' in tweet['retweeted_status']:
-            tweet_text_list.append(tweet['retweeted_status']['extended_tweet']['full_text'])
-        if 'quoted_status' in tweet and 'extended_tweet' in tweet['quoted_status']:
-            tweet_text_list.append(tweet['quoted_status']['extended_tweet']['full_text'])
-
-        tweet_text = max(tweet_text_list, key=len)
-
-        print(tweet_text)
+        tweet_df = parse_tweet(tweet)
 
         return True
 

@@ -7,6 +7,48 @@
 """
 
 import numpy as np
+import pandas as pd
+
+def parse_tweet(tweet: dict) ->  pd.DataFrame:
+
+    # Parse tweet root level info
+    tweet_text = tweet['text']
+    tweet_id_str = tweet['id_str']
+    tweet_created_at = tweet['created_at']
+
+    # Tweet's user data
+    tweet_username = tweet['user']['screen_name']
+    tweet_user_id = tweet['user']['id_str']
+
+    # Tweet's geo data
+    if 'coordinates' in tweet:
+        tweet_coords = tweet['coordinates']['coordinates']      # Tweet coordinates in [long,lat]
+    elif 'place' in tweet:
+        tweet_bounding_box = tweet['place']['bounding_box']['coordinates']      # Tweet's location bounding box
+        tweet_coords = bbox_centroid(tweet_bounding_box)                  # Tweet's centroid
+    else:
+        tweet_coords = None
+
+    # If the tweet is a reply
+    if tweet['in_reply_to_status_id_str']:
+        tweet_in_reply_to_status_id_str = tweet['in_reply_to_status_id_str']    # original Tweet’s ID
+        tweet_in_reply_to_user_id = tweet['in_reply_to_user_id']                # original Tweet’s author ID
+        tweet_in_reply_to_username = tweet['in_reply_to_screen_name']           # the screen name of the original Tweet’s author
+
+    # Truncated tweet
+    if tweet['truncated'] in tweet:
+        tweet_text.append(tweet['extended_tweet']['full_text'])
+
+    if 'retweeted_status' in tweet and 'extended_tweet' in tweet['retweeted_status']:
+        tweet_text.append(tweet['retweeted_status']['extended_tweet']['full_text'])
+
+    if 'quoted_status' in tweet and 'extended_tweet' in tweet['quoted_status']:
+        tweet_text.append(tweet['quoted_status']['extended_tweet']['full_text'])
+
+    tweet_text = max(tweet_text, key=len)
+
+
+    print(tweet_text)
 
 def bbox_centroid(bounding_box: list) -> list:
     '''Calculates the centroid of a bounding box'''
