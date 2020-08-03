@@ -2,3 +2,4 @@
 stream_data.jsonl
 tweets.sqlite
 __pycache__/listener.cpython-37.pyc
+env
